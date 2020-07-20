@@ -1,6 +1,6 @@
 #' シーズンごとの平均打撃成績
 #' 
-#' @param data A data frame containing batting stats. Should be similar to Lahman::battingStats()
+#' @param data A data frame containing batting stats.
 #' @return A data frame containing league averages for batting stats
 #' @export
 #' 
@@ -58,7 +58,7 @@ get_seasonal_batting_player <- function(data, PrimaryPosition=NULL) {
 #' 
 #' @param data A data frame with batting stats, including seasonal averages.
 #' @param metric A string given the name of the metric to compute projections for, e.g. 'HR'
-#' @param age_adjustment_fun A callable to make the age adjustment
+#' @param age_adjustment A callable to make the age adjustment
 #' @param metric_weights An array with the weights to give to the projected stats for the previous seasons. 
 #' The ith elemnt is the weight for the season i years previous. The default is the c(5, 4, 3).
 #' @param playing_time_weights An array with the weights to be used for projecting playing time
@@ -66,9 +66,9 @@ get_seasonal_batting_player <- function(data, PrimaryPosition=NULL) {
 #' @return A data frame containg Marcel projections for 'metric'. The projection is given the generic
 #' name 'proj_value'.
 #' @examples
-#' a <- get_seasonal_batting_player() %>% filter(yearID>=2017) %>% filter(POS!="P")
-#' b <- tbl_df(append_previous_years(a, previous_years = 3))
-#' mcl = apply_marcel_batting(b, "HR", age_adjustment)
+#' a <- get_seasonal_batting_player(data) %>% filter(yearID>=2016) %>% filter(POS!="P")
+#' b <- tbl_df(append_previous_years(a, previous_years = 1))
+#' mcl <- apply_marcel_batting(b, "HR", age_adjustment)
 #' mcl %>% filter(projectedYearID==2004, playerID=='beltrca01')
 #' 
 #' @seealso \code{\link{apply_marcel_pitching}}, 
@@ -76,11 +76,10 @@ get_seasonal_batting_player <- function(data, PrimaryPosition=NULL) {
 #' \code{\link{export_marcels}}
 #' @export
 # 成績予測関数
-apply_marcel_batting <- function(data, metric, age_adjustment_fun,
+apply_marcel_batting <- function(data, metric, age_adjustment,
                                  metric_weights = c(5,4,3),
                                  playing_time_weights = c(0.5, 0.1, 0)) {
   sw <- sum(metric_weights)
-  
   x_metric <- 0
   x_pa <- 0
   x_av_num <- 0
@@ -105,9 +104,9 @@ apply_marcel_batting <- function(data, metric, age_adjustment_fun,
     metric_target_num <- metric_target_num + (metric_weights[idx] * sa_value)
     metric_target_denom <- metric_target_denom + metric_weights[idx]
   }
-  data$age_adj <- sapply(data$Age, age_adjustment_fun)
+  data$age_adj <- sapply(data$Age, age_adjustment)
   
-  x_av <- x_av_num / x_av_denom
+  x_av <- x_av_num / x_av_denom # 打席数調整
   metric_target <- metric_target_num / metric_target_denom
   data.frame(playerID = data$playerID,
              yearID   = data$yearID,

@@ -11,8 +11,8 @@ age_adjustment <- function(age) {
   } else if (age <= 0) { #johnsbi01 ?
     1
   } else if (age > 29) {
-    1 /(1 + 0.003 * (age-29))
-  } else if (age<29) {
+    1 / (1 + 0.003 * (age-29))
+  } else if (age < 29) {
     1 + 0.006 * (29-age)
   } else {
     1
@@ -66,35 +66,22 @@ get_primary_pos <- function(year=NULL) {
     ungroup()
 }
 
-sum_stints <- function(data, columns_to_sum) {
-  grouped_data <- data %>% group_by(playerID, yearID)
-  for (column in columns_to_sum) {
-    tmp <- grouped_data %>% 
-      mutate_(var = lazyeval::interp(~sum(var, na.rm = TRUE), 
-                                           var = as.name(column)))
-    grouped_data[[column]] <- tmp$var
-  }
-  grouped_data
-}
-
 append_previous_years <- function(data, previous_years=3) {
   df_list <- list()
   for (year_offset in 1:previous_years)
     df_list[[year_offset]] <- data %>% mutate(yearID = yearID+year_offset-1)
-
+  
   seasonal_averages <- get_seasonal_batting_ave(data)
   for(idx in 1:previous_years) {
     this_df = df_list[[idx]]
     all_data <- left_join(data, this_df, by = c("playerID", "yearID"), 
                           suffixes = c("",sprintf(".%d", idx)))
-    
+
     this_sa <- get_seasonal_batting_ave(this_df)
     seasonal_averages <- left_join(seasonal_averages, this_sa,
-                               by="yearID",
-                               suffixes = c("",sprintf(".%d", idx)))
-    
+                                   by="yearID",
+                                   suffixes = c("",sprintf(".%d", idx)))
   }
-  
   all_data %>% inner_join(seasonal_averages, by="yearID", suffixes=c("", ".SA"))
 }
 
